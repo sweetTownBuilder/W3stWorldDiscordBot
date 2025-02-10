@@ -59,16 +59,17 @@ async def start_bot():
         if result:
             conversation_id = channels_states.get(result)
             user_id = result
-        response = await dify.send_streaming_chat_message(
-            message=message.clean_content,
-            user_id=user_id,
-            conversation_id=conversation_id,
-        )
-        if conversation_id is None:
-            if result and response.conversation_id:
-                channels_states[result] = response.conversation_id # 存储 UUID
-        if response.need_response:
-            await message.reply(response.message)
+        async with message.channel.typing():
+            response = await dify.send_streaming_chat_message(
+                message=message.clean_content,
+                user_id=user_id,
+                conversation_id=conversation_id,
+            )
+            if conversation_id is None:
+                if result and response.conversation_id:
+                    channels_states[result] = response.conversation_id # 存储 UUID
+            if response.need_response:
+                await message.reply(response.message)
 
         await bot.process_commands(message)
     bot.run(conf.bot.token)
