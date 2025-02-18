@@ -72,7 +72,7 @@ async def start_bot():
                 await message.reply(response.message)
 
         await bot.process_commands(message)
-    bot.run(conf.bot.token)
+    await bot.start(conf.bot.token)
 
 
 async def check_mentions(message, bot) -> tuple[str|None, list[discord.Role]]:
