@@ -46,19 +46,20 @@ async def periodic_message_task():
     channel = bot.get_channel(conf.bot.channel_id)
     while not bot.is_closed():
         if channel:
-            response = await dify.send_streaming_chat_message(
-                message="Tell a piece of trending news in the field of crypto memecoins，preferably news about a "
-                        "price of a memecoin went up trenmendously or someone make a huge returns on a memcoin. "
-                        "News should have a clear and specific protagonist, not a general study of the field. If "
-                        "appropriate, you may open with an interactive question as greetings such as \"Anyone "
-                        "wants to hear an exciting news about ... ?\". If appropriate, you may end with a "
-                        "suggestion about what people should do upon hearing the news. Your tone depicting the "
-                        "news itself should be concise and professional but your overall tone should be casual "
-                        "and friendly.",
-                user_id=conf.bot.channel_id,
-                conversation_id=None
-            )
-            await channel.send(response.message)
+            async with channel.typing():
+                response = await dify.send_streaming_chat_message(
+                    message="Tell a piece of trending news in the field of crypto memecoins，preferably news about a "
+                            "price of a memecoin went up trenmendously or someone make a huge returns on a memcoin. "
+                            "News should have a clear and specific protagonist, not a general study of the field. If "
+                            "appropriate, you may open with an interactive question as greetings such as \"Anyone "
+                            "wants to hear an exciting news about ... ?\". If appropriate, you may end with a "
+                            "suggestion about what people should do upon hearing the news. Your tone depicting the "
+                            "news itself should be concise and professional but your overall tone should be casual "
+                            "and friendly.",
+                    user_id=conf.bot.channel_id,
+                    conversation_id=None
+                )
+                await channel.send(response.message)
         await asyncio.sleep(random.randint(60 * 60 * 3, 60 * 60 * 5))  # Sleep for a random 5-6 hours
 
 
@@ -110,32 +111,6 @@ async def on_message(message):
             await message.reply(response.message)
 
     await bot.process_commands(message)
-
-
-# async def send_daily_random_messages():
-#     await bot.wait_until_ready()
-#     while not bot.is_closed():
-#         if conf.bot.channel_id:
-#             response = await dify.send_streaming_chat_message(
-#                 message="Tell a piece of trending news in the field of crypto memecoins，preferably news about a "
-#                         "price of a memecoin went up trenmendously or someone make a huge returns on a memcoin. "
-#                         "News should have a clear and specific protagonist, not a general study of the field. If "
-#                         "appropriate, you may open with an interactive question as greetings such as \"Anyone "
-#                         "wants to hear an exciting news about ... ?\". If appropriate, you may end with a "
-#                         "suggestion about what people should do upon hearing the news. Your tone depicting the "
-#                         "news itself should be concise and professional but your overall tone should be casual "
-#                         "and friendly.",
-#                 user_id=conf.bot.channel_id,
-#                 conversation_id=None,
-#                 new_member_name=None
-#             )
-#             if response.need_response and conf.bot.channel_id:
-#                 logging.info(response.message)
-#                 await bot.get_channel(conf.bot.channel_id).send(response.message)
-#
-#         await asyncio.sleep(random.randint(60 * 60 * 3, 60 * 60 * 5))  # Sleep for a random 5-6 hours
-
-# asyncio.create_task(send_daily_random_messages())
 
 
 

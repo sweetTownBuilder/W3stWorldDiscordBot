@@ -13,7 +13,7 @@ class BotConfig:
     """Bot configuration."""
 
     token: str = os.getenv('BOT_TOKEN')
-    channel_id: str = os.getenv('BOT_CHANNEL_ID')
+    channel_id: int = int(os.getenv('BOT_CHANNEL_ID'))
     DEFAULT_LOCALE: str = 'en'
 
 
