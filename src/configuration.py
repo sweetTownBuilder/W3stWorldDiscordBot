@@ -1,7 +1,7 @@
 """This file represents configurations from files and environment."""
-import os
 import logging
-from dataclasses import dataclass, field
+import os
+from dataclasses import dataclass
 
 from dotenv import load_dotenv
 
@@ -13,7 +13,7 @@ class BotConfig:
     """Bot configuration."""
 
     token: str = os.getenv('BOT_TOKEN')
-    channel_id = os.getenv('BOT_CHANNEL_ID')
+    channel_id: str = os.getenv('BOT_CHANNEL_ID')
     DEFAULT_LOCALE: str = 'en'
 
 
