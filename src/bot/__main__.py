@@ -10,127 +10,133 @@ from src.configuration import conf
 
 channels_states = {}
 
+"""启动 bot 并监听消息"""
+intents = discord.Intents.default()
+intents.members = True  # 允许监听成员加入事件
+intents.messages = True  # 允许监听消息事件
+intents.guilds = True
+intents.message_content = True  # 需要启用以监听消息
 
-async def start_bot():
-    """启动 bot 并监听消息"""
-    intents = discord.Intents.default()
-    intents.members = True  # 允许监听成员加入事件
-    intents.messages = True  # 允许监听消息事件
-    intents.guilds = True
-    intents.message_content = True  # 需要启用以监听消息
+bot = commands.Bot(command_prefix="!", intents=intents)
+dify: Dify = Dify(conf.dify.api_key, conf.dify.base_url)
 
-    bot = commands.Bot(command_prefix="!", intents=intents)
-    dify: Dify = Dify(conf.dify.api_key, conf.dify.base_url)
 
-    # 监听机器人启动
-    @bot.event
-    async def on_ready():
-        print(f">>> Bot 已登录为：{bot.user} <<<")
-        bot.loop.create_task(periodic_message_task())
+# 监听机器人启动
+@bot.event
+async def on_ready():
+    print(f">>> Bot 已登录为：{bot.user} <<<")
+    bot.loop.create_task(periodic_message_task())
 
-        # 添加主动发送命令
-    @bot.command(name='send')
-    @commands.has_permissions(administrator=True)
-    async def send_message(ctx, channel_id: int, *, message: str):
-        target_channel = bot.get_channel(channel_id)
-        if target_channel:
-            await target_channel.send(message)
-            await ctx.send(f"✅ 消息已发送至 {target_channel.mention}")
-        else:
-            await ctx.send("❌ 频道不存在")
+    # 添加主动发送命令
 
-    async def periodic_message_task():
-        await bot.wait_until_ready()
-        channel = bot.get_channel(conf.bot.channel_id)
-        while not bot.is_closed():
-            if channel:
-                response = await dify.send_streaming_chat_message(
-                    message="Tell a piece of trending news in the field of crypto memecoins，preferably news about a "
-                            "price of a memecoin went up trenmendously or someone make a huge returns on a memcoin. "
-                            "News should have a clear and specific protagonist, not a general study of the field. If "
-                            "appropriate, you may open with an interactive question as greetings such as \"Anyone "
-                            "wants to hear an exciting news about ... ?\". If appropriate, you may end with a "
-                            "suggestion about what people should do upon hearing the news. Your tone depicting the "
-                            "news itself should be concise and professional but your overall tone should be casual "
-                            "and friendly.",
-                    user_id=conf.bot.channel_id,
-                    conversation_id=None
-                )
-                await channel.send(response.message)
-            await asyncio.sleep(random.randint(60 * 60 * 3, 60 * 60 * 5))  # Sleep for a random 5-6 hours
-    # 当新成员加入时，发送欢迎并@新成员
-    @bot.event
-    async def on_member_join(member):
-        channel = discord.utils.get(member.guild.text_channels, name="general")
+
+@bot.command(name='send')
+@commands.has_permissions(administrator=True)
+async def send_message(ctx, channel_id: int, *, message: str):
+    target_channel = bot.get_channel(channel_id)
+    if target_channel:
+        await target_channel.send(message)
+        await ctx.send(f"✅ 消息已发送至 {target_channel.mention}")
+    else:
+        await ctx.send("❌ 频道不存在")
+
+
+async def periodic_message_task():
+    await bot.wait_until_ready()
+    channel = bot.get_channel(conf.bot.channel_id)
+    while not bot.is_closed():
         if channel:
-            # 这里使用 member.mention 来@该用户
             response = await dify.send_streaming_chat_message(
-                message="new member join the group",
-                user_id=member.author.id,
-                conversation_id=None,
-                new_member_name=member.mention
+                message="Tell a piece of trending news in the field of crypto memecoins，preferably news about a "
+                        "price of a memecoin went up trenmendously or someone make a huge returns on a memcoin. "
+                        "News should have a clear and specific protagonist, not a general study of the field. If "
+                        "appropriate, you may open with an interactive question as greetings such as \"Anyone "
+                        "wants to hear an exciting news about ... ?\". If appropriate, you may end with a "
+                        "suggestion about what people should do upon hearing the news. Your tone depicting the "
+                        "news itself should be concise and professional but your overall tone should be casual "
+                        "and friendly.",
+                user_id=conf.bot.channel_id,
+                conversation_id=None
             )
-            if response.need_response:
-                await channel.send(response.message)
+            await channel.send(response.message)
+        await asyncio.sleep(random.randint(60 * 60 * 3, 60 * 60 * 5))  # Sleep for a random 5-6 hours
 
-    # 示例：与用户聊天并显示用户的ID
-    @bot.event
-    async def on_message(message):
-        if message.author == bot.user:
-            return
 
-        # 如果@了Bot，则回复
-        mention_type, roles = await  check_mentions(message, bot)
-        user_id = message.author.id
-        channel_id = message.channel.id
-        if mention_type:
-            result = f"{channel_id}-{user_id}"
-        else:
-            result = f"{user_id}"
+# 当新成员加入时，发送欢迎并@新成员
+@bot.event
+async def on_member_join(member):
+    channel = discord.utils.get(member.guild.text_channels, name="general")
+    if channel:
+        # 这里使用 member.mention 来@该用户
+        response = await dify.send_streaming_chat_message(
+            message="new member join the group",
+            user_id=member.author.id,
+            conversation_id=None,
+            new_member_name=member.mention
+        )
+        if response.need_response:
+            await channel.send(response.message)
 
-        conversation_id: str | None = None
-        if result:
-            conversation_id = channels_states.get(result)
-            user_id = result
-        async with message.channel.typing():
-            response = await dify.send_streaming_chat_message(
-                message=message.clean_content,
-                user_id=user_id,
-                conversation_id=conversation_id,
-            )
-            if conversation_id is None:
-                if result and response.conversation_id:
-                    channels_states[result] = response.conversation_id  # 存储 UUID
-            if response.need_response:
-                await message.reply(response.message)
 
-        await bot.process_commands(message)
+# 示例：与用户聊天并显示用户的ID
+@bot.event
+async def on_message(message):
+    if message.author == bot.user:
+        return
 
-    # async def send_daily_random_messages():
-    #     await bot.wait_until_ready()
-    #     while not bot.is_closed():
-    #         if conf.bot.channel_id:
-    #             response = await dify.send_streaming_chat_message(
-    #                 message="Tell a piece of trending news in the field of crypto memecoins，preferably news about a "
-    #                         "price of a memecoin went up trenmendously or someone make a huge returns on a memcoin. "
-    #                         "News should have a clear and specific protagonist, not a general study of the field. If "
-    #                         "appropriate, you may open with an interactive question as greetings such as \"Anyone "
-    #                         "wants to hear an exciting news about ... ?\". If appropriate, you may end with a "
-    #                         "suggestion about what people should do upon hearing the news. Your tone depicting the "
-    #                         "news itself should be concise and professional but your overall tone should be casual "
-    #                         "and friendly.",
-    #                 user_id=conf.bot.channel_id,
-    #                 conversation_id=None,
-    #                 new_member_name=None
-    #             )
-    #             if response.need_response and conf.bot.channel_id:
-    #                 logging.info(response.message)
-    #                 await bot.get_channel(conf.bot.channel_id).send(response.message)
-    #
-    #         await asyncio.sleep(random.randint(60 * 60 * 3, 60 * 60 * 5))  # Sleep for a random 5-6 hours
+    # 如果@了Bot，则回复
+    mention_type, roles = await  check_mentions(message, bot)
+    user_id = message.author.id
+    channel_id = message.channel.id
+    if mention_type:
+        result = f"{channel_id}-{user_id}"
+    else:
+        result = f"{user_id}"
 
-    # asyncio.create_task(send_daily_random_messages())
-    await bot.start(conf.bot.token)
+    conversation_id: str | None = None
+    if result:
+        conversation_id = channels_states.get(result)
+        user_id = result
+    async with message.channel.typing():
+        response = await dify.send_streaming_chat_message(
+            message=message.clean_content,
+            user_id=user_id,
+            conversation_id=conversation_id,
+        )
+        if conversation_id is None:
+            if result and response.conversation_id:
+                channels_states[result] = response.conversation_id  # 存储 UUID
+        if response.need_response:
+            await message.reply(response.message)
+
+    await bot.process_commands(message)
+
+
+# async def send_daily_random_messages():
+#     await bot.wait_until_ready()
+#     while not bot.is_closed():
+#         if conf.bot.channel_id:
+#             response = await dify.send_streaming_chat_message(
+#                 message="Tell a piece of trending news in the field of crypto memecoins，preferably news about a "
+#                         "price of a memecoin went up trenmendously or someone make a huge returns on a memcoin. "
+#                         "News should have a clear and specific protagonist, not a general study of the field. If "
+#                         "appropriate, you may open with an interactive question as greetings such as \"Anyone "
+#                         "wants to hear an exciting news about ... ?\". If appropriate, you may end with a "
+#                         "suggestion about what people should do upon hearing the news. Your tone depicting the "
+#                         "news itself should be concise and professional but your overall tone should be casual "
+#                         "and friendly.",
+#                 user_id=conf.bot.channel_id,
+#                 conversation_id=None,
+#                 new_member_name=None
+#             )
+#             if response.need_response and conf.bot.channel_id:
+#                 logging.info(response.message)
+#                 await bot.get_channel(conf.bot.channel_id).send(response.message)
+#
+#         await asyncio.sleep(random.randint(60 * 60 * 3, 60 * 60 * 5))  # Sleep for a random 5-6 hours
+
+# asyncio.create_task(send_daily_random_messages())
+
 
 
 async def check_mentions(message, bot) -> tuple[str | None, list[discord.Role]]:
@@ -177,4 +183,4 @@ async def check_mentions(message, bot) -> tuple[str | None, list[discord.Role]]:
 
 if __name__ == "__main__":
     logging.basicConfig(level=conf.logging_level)
-    asyncio.run(start_bot())
+    bot.run(conf.bot.token)
