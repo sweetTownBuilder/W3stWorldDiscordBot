@@ -14,7 +14,7 @@ class Dify(BaseClient):
     async def send_streaming_chat_message(
             self,
             message: str,
-            user_id: int,
+            user_id: str,
             conversation_id: str = None,
             new_member_name: str | None = None,
     ) -> Response:

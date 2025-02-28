@@ -84,31 +84,25 @@ async def on_member_join(member):
 async def on_message(message):
     if message.author == bot.user:
         return
-
-    # 如果@了Bot，则回复
-    mention_type, roles = await  check_mentions(message, bot)
-    user_id = message.author.id
-    channel_id = message.channel.id
-    if mention_type:
-        result = f"{channel_id}-{user_id}"
-    else:
-        result = f"{user_id}"
-
-    conversation_id: str | None = None
-    if result:
-        conversation_id = channels_states.get(result)
-        user_id = result
-    async with message.channel.typing():
-        response = await dify.send_streaming_chat_message(
-            message=message.clean_content,
-            user_id=user_id,
-            conversation_id=conversation_id,
-        )
-        if conversation_id is None:
-            if result and response.conversation_id:
-                channels_states[result] = response.conversation_id  # 存储 UUID
-        if response.need_response:
-            await message.reply(response.message)
+    if bot.user in message.mentions:
+        async with message.channel.typing():
+            user_id = message.author.id
+            channel_id = message.channel.id
+            result = f"{channel_id}-{user_id}"
+            conversation_id: str | None = None
+            if result:
+                conversation_id = channels_states.get(result)
+                user_id = result
+            response = await dify.send_streaming_chat_message(
+                message=message.clean_content,
+                user_id=user_id,
+                conversation_id=conversation_id,
+            )
+            if conversation_id is None:
+                if result and response.conversation_id:
+                    channels_states[result] = response.conversation_id  # 存储 UUID
+            if response.need_response:
+                await message.reply(response.message)
 
     await bot.process_commands(message)
 
