@@ -50,14 +50,12 @@ async def periodic_message_task():
                 response = await dify.send_streaming_chat_message(
                     message="Tell a piece of trending news in the field of crypto memecoins，preferably news about a "
                             "price of a memecoin went up trenmendously or someone make a huge returns on a memcoin. "
-                            "News should have a clear and specific protagonist, not a general study of the field. If "
-                            "appropriate, you may open with an interactive question as greetings such as \"Anyone "
-                            "wants to hear an exciting news about ... ?\". If appropriate, you may end with a "
-                            "suggestion about what people should do upon hearing the news. Your tone depicting the "
-                            "news itself should be concise and professional but your overall tone should be casual "
-                            "and friendly.",
+                            "News should have a clear and specific protagonist, not a general study f the field. If "
+                            "appropriate, you may end with a suggestion about what people should do upon hearing the "
+                            "news.",
                     user_id=conf.bot.channel_id,
-                    conversation_id=None
+                    conversation_id=None,
+                    discord_chat_type = "ask_for_news",
                 )
                 await channel.send(response.message)
         await asyncio.sleep(random.randint(60 * 60 * 3, 60 * 60 * 5))  # Sleep for a random 5-6 hours
@@ -73,7 +71,9 @@ async def on_member_join(member):
             message="new member join the group",
             user_id=member.author.id,
             conversation_id=None,
-            new_member_name=member.mention
+            new_member_name=member.mention,
+            user_name=member.mention,
+            discord_chat_type="welcome",
         )
         if response.need_response:
             await channel.send(response.message)
@@ -97,6 +97,7 @@ async def on_message(message):
                 message=message.clean_content,
                 user_id=user_id,
                 conversation_id=conversation_id,
+                user_name=message.author.mention,
             )
             if conversation_id is None:
                 if result and response.conversation_id:

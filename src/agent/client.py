@@ -14,7 +14,9 @@ class Dify(BaseClient):
     async def send_streaming_chat_message(
             self,
             message: str,
-            user_id: str,
+            user_id: int,
+            user_name: str = 'discord',
+            discord_chat_type: str = 'chat',
             conversation_id: str = None,
             new_member_name: str | None = None,
     ) -> Response:
@@ -27,7 +29,11 @@ class Dify(BaseClient):
                 "conversation_id": conversation_id if conversation_id else '',
                 "user": user_id,
                 "inputs": {
-                    "new_member_name": new_member_name
+                    "run_type": "chat",
+                    "chat_place": "discord",
+                    "user_name": user_name,
+                    "new_member_name": new_member_name,
+                    "discord_chat_type": discord_chat_type,
                 }
             },
             headers={'Authorization': f'Bearer {self.api_key}'}
